@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALDO KSA</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Futura Bold, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            text-align: left;
+            color: #2D2926;
+            margin: 10px 0;
+            font-size: 2.5em;
+            z-index: 1000;
+            background-color: #ffffffd9; /* Semi-transparent background */
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #map {
+            flex-grow: 1;
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #nearest-store-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            background-color: #2D2926;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        #nearest-store-button:hover {
+            background-color: #3B3733;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            #nearest-store-button {
+                padding: 8px 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5em;
+                padding: 5px;
+            }
+
+            #nearest-store-button {
+                padding: 6px 12px;
+            }
+        }   
+    </style>
+</head>
+<body>
+    <h1>ALDO Stores</h1>
+    <div id="map"></div>
+    <button id="nearest-store-button" onclick="getLocation()">Find Nearest Store</button>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Custom ALDO pin icon
+        const aldoIcon = L.icon({
+            iconUrl: 'https://d31j7ucw3xqus1.cloudfront.net/media/mf_webp/png/media/logo/websites/15/logo_1_2.webp', // Updated with the local path to your uploaded image
+            iconSize: [60, 18], // size of the icon
+            iconAnchor: [22, 45], // point of the icon which will correspond to marker's location
+            popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+        });
+
+        // Your store locations
+        const stores = [
+{
+        "Location": "Salam Plaza",
+        "Latitude": 24.55878509,
+        "Longitude": 46.63734732,
+        "URL": "https://www.google.com/maps?q=24.55878509,46.63734732"
+    },
+    {
+        "Location": "Tala Mall",
+        "Latitude": 24.77182819,
+        "Longitude": 46.66911768,
+        "URL": "https://www.google.com/maps?q=24.77182819,46.66911768"
+    },
+    {
+        "Location": "The View Mall",
+        "Latitude": 24.69597464,
+        "Longitude": 46.72750039,
+        "URL": "https://www.google.com/maps?q=24.69597464,46.72750039"
+    },
+    {
+        "Location": "Al Hamra Mall",
+        "Latitude": 24.77346979,
+        "Longitude": 46.77709837,
+        "URL": "https://www.google.com/maps?q=24.77346979,46.77709837"
+    },
+    {
+        "Location": "Panorama",
+        "Latitude": 24.6921856,
+        "Longitude": 46.6686519,
+        "URL": "https://www.google.com/maps?q=24.6921856,46.6686519"
+    },
+    {
+        "Location": "Hayat mall",
+        "Latitude": 24.74267991,
+        "Longitude": 46.67981507,
+        "URL": "https://www.google.com/maps?q=24.74267991,46.67981507"
+    },
+    {
+        "Location": "Park avenue",
+        "Latitude": 24.82767765,
+        "Longitude": 46.72824847,
+        "URL": "https://www.google.com/maps?q=24.82767765,46.72824847"
+    },
+    {
+        "Location": "Granata",
+        "Latitude": 24.78115776,
+        "Longitude": 46.73076127,
+        "URL": "https://www.google.com/maps?q=24.78115776,46.73076127"
+    },
+    {
+        "Location": "Kingdom Shopping Center",
+        "Latitude": 24.71188397,
+        "Longitude": 46.67479706,
+        "URL": "https://www.google.com/maps?q=24.71188397,46.67479706"
+    },
+    {
+        "Location": "Riyadh Gallery Mall",
+        "Latitude": 24.74310652,
+        "Longitude": 46.65889293,
+        "URL": "https://www.google.com/maps?q=24.74310652,46.65889293"
+    },
+    {
+        "Location": "Al Nakheel Mall",
+        "Latitude": 24.7666461,
+        "Longitude": 46.71502536,
+        "URL": "https://www.google.com/maps?q=24.7666461,46.71502536"
+    },
+    {
+        "Location": "Nakheel Mall Dammam",
+        "Latitude": 26.39128317,
+        "Longitude": 50.03752873,
+        "URL": "https://www.google.com/maps?q=26.39128317,50.03752873"
+    },
+    {
+        "Location": "Mall of Dhahran",
+        "Latitude": 26.30638935,
+        "Longitude": 50.17140629,
+        "URL": "https://www.google.com/maps?q=26.30638935,50.17140629"
+    },
+    {
+        "Location": "Ehsa Mall",
+        "Latitude": 25.32998449,
+        "Longitude": 49.54977341,
+        "URL": "https://www.google.com/maps?q=25.32998449,49.54977341"
+    },
+    {
+        "Location": "Abraj Albait",
+        "Latitude": 21.4188747,
+        "Longitude": 39.8263824,
+        "URL": "https://www.google.com/maps?q=21.4188747,39.8263824"
+    },
+    {
+        "Location": "Makkah Mall",
+        "Latitude": 21.39109274,
+        "Longitude": 39.88456028,
+        "URL": "https://www.google.com/maps?q=21.39109274,39.88456028"
+    },
+    {
+        "Location": "Al Noor Mall",
+        "Latitude": 24.49589914,
+        "Longitude": 39.59574264,
+        "URL": "https://www.google.com/maps?q=24.49589914,39.59574264"
+    },
+    {
+        "Location": "Jeddah Park",
+        "Latitude": 21.55675313,
+        "Longitude": 39.18461446,
+        "URL": "https://www.google.com/maps?q=21.55675313,39.18461446"
+    },
+    {
+        "Location": "Jouri Mall",
+        "Latitude": 21.27684764,
+        "Longitude": 40.44591436,
+        "URL": "https://www.google.com/maps?q=21.27684764,40.44591436"
+    },
+    {
+        "Location": "Haifa Mall",
+        "Latitude": 21.50760199,
+        "Longitude": 39.22369212,
+        "URL": "https://www.google.com/maps?q=21.50760199,39.22369212"
+    },
+    {
+        "Location": "U Walk",
+        "Latitude": 21.58285005,
+        "Longitude": 39.14093663,
+        "URL": "https://www.google.com/maps?q=21.58285005,39.14093663"
+    },
+    {
+        "Location": "Salam Mall -Jeddah",
+        "Latitude": 21.50760091,
+        "Longitude": 39.22369449,
+        "URL": "https://www.google.com/maps?q=21.50760091,39.22369449"
+    },
+    {
+        "Location": "Al Yasmin Mall",
+        "Latitude": 21.59374301,
+        "Longitude": 39.22927024,
+        "URL": "https://www.google.com/maps?q=21.59374301,39.22927024"
+    },
+    {
+        "Location": "Aziz Mall",
+        "Latitude": 21.57668225,
+        "Longitude": 39.1965195,
+        "URL": "https://www.google.com/maps?q=21.57668225,39.1965195"
+    },
+    {
+        "Location": "Mall of Arabia",
+        "Latitude": 21.63340781,
+        "Longitude": 39.15623832,
+        "URL": "https://www.google.com/maps?q=21.63340781,39.15623832"
+    },
+    {
+        "Location": "Red Sea Mall",
+        "Latitude": 21.62738245,
+        "Longitude": 39.11032213,
+        "URL": "https://www.google.com/maps?q=21.62738245,39.11032213"
+    },
+    {
+        "Location": "Andalus mall",
+        "Latitude": 21.50758102,
+        "Longitude": 39.2237,
+        "URL": "https://www.google.com/maps?q=21.50758102,39.2237"
+    }
+    ];
+         const map = L.map('map').setView([25.07177089671393, 44.475628643936496], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        stores.forEach(store => {
+            const marker = L.marker([store.Latitude, store.Longitude], { icon: aldoIcon }).addTo(map)
+                .bindPopup(`<strong style="color: #d62300; font-size: 1.2em;">${store.Location}</strong><br><a href="${store.URL}" target="_blank" style="color: #007bff;">Open in Google Maps</a>`);
+        });
+
+        // Show welcome popup
+        const welcomePopup = L.popup()
+            .setLatLng([25.07177089671393, 44.475628643936496])
+            .setContent('<b>Welcome to ALDO KSA!</b><br>Click "Find Nearest Store" to locate the nearest Aldo Store.')
+            .openOn(map);
+
+        function getLocation() {
+    if (navigator.geolocation) {
+        if (isSafari()) {
+            const userConsent = confirm("This site needs your location to find the nearest store. Please allow location access in the popup.");
+            if (userConsent) {
+                navigator.geolocation.getCurrentPosition(showNearestStore, handleLocationError, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            }
+        } else {
+            navigator.geolocation.getCurrentPosition(showNearestStore, handleLocationError, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        }
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+}
+
+function isSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+
+function handleLocationError(error) {
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            alert("User denied the request for Geolocation.");
+            break;
+        case error.POSITION_UNAVAILABLE:
+            alert("Location information is unavailable.");
+            break;
+        case error.TIMEOUT:
+            alert("The request to get user location timed out.");
+            break;
+        case error.UNKNOWN_ERROR:
+            alert("An unknown error occurred.");
+            break;
+    }
+}
+
+        function showNearestStore(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            let nearestStore = null;
+            let minDistance = Infinity;
+            stores.forEach(store => {
+                const distance = getDistance(userLat, userLng, store.Latitude, store.Longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestStore = store;
+                }
+            });
+            if (nearestStore) {
+                alert(`The nearest store is: ${nearestStore.Location}`);
+                window.open(nearestStore.URL, "_blank");
+            }
+        }
+        function getDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLng = deg2rad(lng2 - lng1);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c; // Distance in km
+            return distance;
+        }
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+    </script>
+</body>
+</html>
